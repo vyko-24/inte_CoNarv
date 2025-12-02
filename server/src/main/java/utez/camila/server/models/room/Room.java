@@ -2,7 +2,12 @@ package utez.camila.server.models.room;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
+import utez.camila.server.models.report.Report;
 import utez.camila.server.models.user.User;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "room")
@@ -18,9 +23,39 @@ public class Room {
     private String number;
 
     @ManyToOne
-    @JoinColumn(name = "id_user")
+    @JoinColumn(name = "id_user", nullable = true)
     @JsonIgnoreProperties(value = {"roomsAsigned","password"})
     private User maid;
+
+    @Column(name="cleaned_time")
+    private LocalDateTime cleanTime;
+
+    @OneToMany(mappedBy = "roomsAsigned", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties(value = {"roomsAsigned"})
+    private List<Report> report = new ArrayList<>();
+
+    public LocalDateTime getCleanTime() {
+        return cleanTime;
+    }
+
+    public Room(String status, String number, User maid, LocalDateTime cleanTime) {
+        this.status = status;
+        this.number = number;
+        this.maid = maid;
+        this.cleanTime = cleanTime;
+    }
+
+    public List<Report> getReport() {
+        return report;
+    }
+
+    public void setReport(List<Report> report) {
+        this.report = report;
+    }
+
+    public void setCleanTime(LocalDateTime cleanTime) {
+        this.cleanTime = cleanTime;
+    }
 
     public Long getId() {
         return id;

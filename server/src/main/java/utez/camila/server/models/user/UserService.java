@@ -49,11 +49,11 @@ public class UserService {
     }*/
 
     @Transactional(rollbackFor = Exception.class)
-    public ResponseEntity<?> findByEmail(String email) {
+    public User findByEmail(String email){
         User userFound = userRepository.findByEmail(email);
         if (userFound == null)
-            return customResponse.getBadRequest("Usuario no encontrado");
-        return customResponse.getJSONResponse(userFound);
+            return null;
+        return userFound;
     }
 
     @Transactional(rollbackFor = Exception.class)

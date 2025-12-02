@@ -29,7 +29,7 @@ public class User {
     @Column(name = "status", nullable = false)
     private Boolean status;
 
-    @OneToMany(mappedBy = "maid", cascade = CascadeType.PERSIST)
+    @OneToMany(mappedBy = "maid")
     @JsonIgnore
     private List<Room> roomsAsigned;
 
@@ -52,6 +52,14 @@ public class User {
         this.username = username;
         this.email = email;
         this.rol = rol;
+    }
+
+    public User(String username, String password, String email, String rol, Boolean status) {
+        this.username = username;
+        this.password = password;
+        this.email = email;
+        this.rol = rol;
+        this.status = status;
     }
 
     public Boolean getStatus() {
