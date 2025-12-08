@@ -12,12 +12,26 @@ public class ReportDTO {
     private String description;
     private List<Images> imagenes;
     private Room roomsAsigned;
+    private Long roomId;
 
-    public Report toEntity(){
-        return new Report(title, description, imagenes, roomsAsigned);
+    public Report toEntity() {
+        // Necesitamos asegurar que la Room se asocie correctamente.
+        // Como aquí solo tienes el ID (roomId) y no el objeto Room completo,
+        // tienes dos opciones:
+        // 1. Buscar la Room en el Controller/Service y pasársela al DTO.
+        // 2. Crear una Room con solo el ID (Hibernate a veces acepta esto como referencia).
+
+        Room roomRef = new Room();
+        roomRef.setId(this.roomId);
+
+        return new Report(title, description, null, roomRef);
+        // Nota: Pasamos 'null' en imágenes porque se procesan y agregan después en tu service addReport
     }
 
     public ReportDTO(String title, String description, Long roomId, List<MultipartFile> imagenes) {
+        this.title = title;             // <--- FALTABA ESTO
+        this.description = description; // <--- FALTABA ESTO (Culpable del error)
+        this.roomId = roomId;
     }
 
     public Long getId() {
@@ -58,5 +72,13 @@ public class ReportDTO {
 
     public void setRoomsAsigned(Room roomsAsigned) {
         this.roomsAsigned = roomsAsigned;
+    }
+
+    public Long getRoomId() {
+        return roomId;
+    }
+
+    public void setRoomId(Long roomId) {
+        this.roomId = roomId;
     }
 }

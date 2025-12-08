@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import utez.camila.server.config.CustomResponse;
 import utez.camila.server.models.helpers.Status;
+import utez.camila.server.models.report.Report;
+import utez.camila.server.models.report.ReportRepository;
 import utez.camila.server.models.user.User;
 import utez.camila.server.models.user.UserRepository;
 
@@ -22,6 +24,9 @@ public class RoomService {
 
     @Autowired
     private RoomRepository roomRepository;
+
+    @Autowired
+    private ReportRepository reportRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -148,4 +153,6 @@ public class RoomService {
             e.printStackTrace();
         }
     }
+
+
 }
