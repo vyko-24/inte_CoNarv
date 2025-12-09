@@ -14,10 +14,6 @@ export default defineConfig({
 
     VitePWA({
       registerType: 'autoUpdate',
-      devOptions: {
-        enabled: true, // Habilita la PWA en "pnpm dev"
-        type: 'module', // Importante si usas Vite moderno
-      },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
         name: 'RomMila Hotel App',
