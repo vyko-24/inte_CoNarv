@@ -34,21 +34,17 @@ public class MainSecurity implements WebMvcConfigurer {
     private AuthFilter authFilter;
 
     private final UserDetailsServiceImpl service;
+    private final PasswordConfig passwordEncoder;
 
-    public MainSecurity(UserDetailsServiceImpl service) {
+    public MainSecurity(UserDetailsServiceImpl service, PasswordConfig passwordEncoder) {
         this.service = service;
-    }
-
-    // Genera el encoder de contraseñas
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(service);
-        provider.setPasswordEncoder(passwordEncoder());
+        provider.setPasswordEncoder(passwordEncoder.passwordEncoder());
 
         return provider;
     }

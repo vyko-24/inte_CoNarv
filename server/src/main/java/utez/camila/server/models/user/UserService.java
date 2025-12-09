@@ -8,6 +8,7 @@ import utez.camila.server.config.CustomResponse;
 import utez.camila.server.models.helpers.Rol;
 import utez.camila.server.models.room.Room;
 import utez.camila.server.models.room.RoomRepository;
+import utez.camila.server.security.PasswordConfig;
 
 import java.util.List;
 
@@ -18,36 +19,53 @@ public class UserService {
     private final CustomResponse customResponse;
 
     private final RoomRepository roomRepository;
+    private final PasswordConfig passwordConfig;
 
-    public UserService(UserRepository userRepository, CustomResponse customResponse, RoomRepository roomRepository) {
+    public UserService(UserRepository userRepository, CustomResponse customResponse, RoomRepository roomRepository, PasswordEncoder passwordEncoder, PasswordConfig passwordConfig) {
         this.userRepository = userRepository;
         this.customResponse = customResponse;
         this.roomRepository = roomRepository;
+        this.passwordConfig = passwordConfig;
     }
 
     @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<?> findAllUsers() {
         return customResponse.getJSONResponse(userRepository.findAll());
     }
-/*
+
+
     @Transactional(rollbackFor = Exception.class)
-    public ResponseEntity<?> saveUser(User user) {
-        try{
-            Rol rol = Rol.fromString(user.getRol());
-            User u = new User();
-            u.setRol(rol.getName());
-            u.setEmail(user.getEmail());
-            u.setUsername(user.getUsername());
-            u.setPassword(user.getUsername());
+    public ResponseEntity<?> createUser(UserDTO userDto) {
+        try {
+            // Validar si el correo ya existe
+            if (userRepository.findByEmail(userDto.getEmail()) != null) {
+                return customResponse.getBadRequest("El correo electrónico ya está registrado.");
+            }
 
-            u = userRepository.saveAndFlush(u);
+            // Convertir DTO a Entidad
+            User user = userDto.toEntity();
 
-            return customResponse.getJSONResponse(u);
-        }catch(Exception e){
-            return customResponse.getBadRequest(e.getMessage());
+            // Configuraciones por defecto
+            user.setStatus(true); // Usuario activo por defecto
+
+            // Validar y setear el Rol correctamente
+            Rol rol = Rol.fromString(userDto.getRol());
+            user.setRol(rol.getName());
+
+            // Encriptar contraseña (Por defecto usamos el username como password inicial)
+            user.setPassword(passwordConfig.passwordEncoder().encode(user.getUsername()));
+
+            // Guardar
+            User savedUser = userRepository.saveAndFlush(user);
+
+            return customResponse.getJSONResponse(savedUser);
+        } catch (IllegalArgumentException e) {
+            return customResponse.getBadRequest("Rol inválido: " + userDto.getRol());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return customResponse.getBadRequest("Error al crear el usuario: " + e.getMessage());
         }
-    }*/
-
+    }
     @Transactional(rollbackFor = Exception.class)
     public User findByEmail(String email){
         User userFound = userRepository.findByEmail(email);

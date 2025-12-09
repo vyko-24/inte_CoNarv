@@ -2,7 +2,7 @@ package utez.camila.server.models.helpers;
 
 public enum Status {
     CLEAN("STATUS_CLEAN"),
-    DIRTY("so"),
+    DIRTY("STATUS_DIRTY"),
     MAINTENANCE("STATUS_MAINTENANCE"),
     BLOCKED("STATUS_BLOCKED");
 
