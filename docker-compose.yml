@@ -1,49 +1,28 @@
-version: '3.9'
+version: "3.9"
 
 services:
 
-  mysql:
-    image: mysql:8
-    container_name: mysql_db
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpass
-      MYSQL_DATABASE: appdb
-      MYSQL_USER: appuser
-      MYSQL_PASSWORD: apppass
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-
   backend:
-    build: 
-      context: ./backend
+    build:
+      context: ./server
     container_name: spring_backend
-    depends_on:
-      - mysql
     ports:
       - "8080:8080"
     environment:
-      # SSL
-      SERVER_SSL_ENABLED=false
-      ENV=production
-
-      # Database
-      SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/appdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      SPRING_DATASOURCE_USERNAME=appuser
-      SPRING_DATASOURCE_PASSWORD=apppass
-
-      # JPA
-      SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      SPRING_JPA_SHOW_SQL=false
+      - SERVER_SSL_ENABLED=false
+      - ENV=production
+    networks:
+      - app-network
 
   frontend:
     build:
-      context: ./frontend
+      context: ./client
     container_name: react_frontend
     ports:
       - "3000:80"
+    networks:
+      - app-network
 
-volumes:
-  mysql_data:
+networks:
+  app-network:
+    driver: bridge
