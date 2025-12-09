@@ -64,6 +64,10 @@ public class RoomService {
         if(!roomFound.isPresent()) {
             return customResponse.getBadRequest("Cuarto no encontrado");
         }
+        Optional<Room> nombreRoomFound = roomRepository.findByNumber(room.getNumber());
+        if(nombreRoomFound.isPresent() && !nombreRoomFound.get().getId().equals(id)) {
+            return customResponse.getBadRequest("El número de cuarto ya está en uso");
+        }
         Room existingRoom = roomFound.get();
         existingRoom.setNumber(room.getNumber());
 
@@ -74,7 +78,8 @@ public class RoomService {
         if(userFound.get().getRol().equals("ROLE_ADMIN")) {
             return customResponse.getBadRequest("No se puede asignar un administrador como mucama");
         }
-        if(!existingRoom.getMaid().getId().equals(room.getMaid().getId())) {
+        // validación si hay maid y si esa maid no es la misma que la anterior
+        if(existingRoom.getMaid() != null && !existingRoom.getMaid().getId().equals(room.getMaid().getId())) {
             User existingUser = userFound.get();
             existingRoom.setMaid(room.getMaid());
 
