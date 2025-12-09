@@ -1,5 +1,6 @@
 import AxiosClient from "../../interceptor/axiosclient";
 import { ReportAdapter } from "../../adapters/report/ReportAdapter";
+import { AlertHelper } from "../../utilities/AlertHelper";
 
 export const getAllReports = async () => {
   try {
@@ -47,6 +48,7 @@ export const createReport = async (reportModel) => {
     const response = await AxiosClient.post("/report", formData, {
         headers: { "Content-Type": "multipart/form-data" }
     });
+    AlertHelper.showAlert("Reporte creado correctamente", "success");
     return ReportAdapter.toModel(response.data);
   } catch (error) {
     throw error;
