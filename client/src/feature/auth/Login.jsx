@@ -71,7 +71,7 @@ export default function Login() {
                     placeholder="••••••••"
                   />
                   
-                  {/* BOTÓN OJO */}
+                
                   <button
                     type="button" // IMPORTANTE: type="button" para no enviar form
                     onClick={() => setShowPassword(!showPassword)}
