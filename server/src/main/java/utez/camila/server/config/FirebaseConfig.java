@@ -4,36 +4,44 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import jakarta.annotation.PostConstruct;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Base64;
 
 @Configuration
 public class FirebaseConfig {
 
-    @PostConstruct
-    public void initialize() throws IOException {
-        try (InputStream serviceAccount =
-                     getClass().getClassLoader().getResourceAsStream("firebase/serviceAccountKey.json")) {
+    @Bean
+    public FirebaseApp firebaseApp() throws IOException {
+        // 1. Credenciales (JSON en Base64)
+        String base64Credentials = System.getenv("FIREBASE_CREDENTIALS");
 
-            if (serviceAccount == null) {
-                throw new RuntimeException("No se encontró serviceAccountKey.json");
-            }
+        // 2. Nombre del Bucket (NUEVO)
+        String bucketName = System.getenv("FIREBASE_BUCKET");
 
-
-            // --- Se construyen las opciones de Firebase ---
-            FirebaseOptions options = FirebaseOptions.builder()
-                    .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                    .setStorageBucket("reactmobile5a.appspot.com")   // <-- IMPORTANTE
-                    .build();
-
-            // --- Solo inicializa Firebase si no existe ---
-            if (FirebaseApp.getApps().isEmpty()) {
-                FirebaseApp.initializeApp(options);
-                System.out.println("Firebase inicializado correctamente.");
-            }
+        if (base64Credentials == null || base64Credentials.isEmpty()) {
+            throw new RuntimeException("Falta la variable FIREBASE_CREDENTIALS");
         }
+
+        if (bucketName == null || bucketName.isEmpty()) {
+            throw new RuntimeException("Falta la variable FIREBASE_BUCKET");
+        }
+
+        byte[] decodedBytes = Base64.getDecoder().decode(base64Credentials);
+        ByteArrayInputStream serviceAccountStream = new ByteArrayInputStream(decodedBytes);
+
+        FirebaseOptions options = FirebaseOptions.builder()
+                .setCredentials(GoogleCredentials.fromStream(serviceAccountStream))
+                .setStorageBucket(bucketName) // <--- ¡ESTA ES LA LÍNEA QUE FALTABA!
+                .build();
+
+        if (FirebaseApp.getApps().isEmpty()) {
+            return FirebaseApp.initializeApp(options);
+        }
+        return FirebaseApp.getInstance();
     }
 }
-
