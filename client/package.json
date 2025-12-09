@@ -3,7 +3,6 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -14,11 +13,13 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",
     "axios": "^1.13.2",
+    "browser-image-compression": "^2.0.2",
     "dexie": "^4.2.1",
     "firebase": "^12.6.0",
     "flowbite-react": "^0.12.10",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.556.0",
+    "qrcode.react": "^4.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-hot-toast": "^2.6.0",

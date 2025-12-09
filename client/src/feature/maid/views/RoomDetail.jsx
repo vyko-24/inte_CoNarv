@@ -5,96 +5,126 @@ import { createReport } from "../../../services/report/reportService";
 import SpinnerLazy from "../../../utilities/SpinnerLazy";
 import Alert from "../../../components/Alert";
 import { AlertHelper } from "../../../utilities/AlertHelper";
+// IMPORTANTE: Instala esta librería: npm install browser-image-compression
+import imageCompression from 'browser-image-compression';
 
 const RoomDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  // --- ESTADOS ---
   const [room, setRoom] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
-  // Estados del Formulario
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [reportForm, setReportForm] = useState({ title: "", description: "" });
-  
-  // MEJORA: Arrays para manejar múltiples imágenes
   const [reportImages, setReportImages] = useState([]); 
   const [imagePreviews, setImagePreviews] = useState([]);
-  
   const [sendingReport, setSendingReport] = useState(false);
 
+  // --- 1. SINCRONIZACIÓN AUTOMÁTICA (Magia Offline) ---
   useEffect(() => {
+    const syncOfflineReports = async () => {
+      if (navigator.onLine) {
+        const offlineData = localStorage.getItem("offline_reports");
+        if (offlineData) {
+            const pendingReports = JSON.parse(offlineData);
+            if (pendingReports.length > 0) {
+                AlertHelper.showAlert(`Sincronizando ${pendingReports.length} reportes offline...`, "info");
+                
+                for (const report of pendingReports) {
+                    try {
+                        // Reconstruir archivos desde Base64
+                        const files = await Promise.all(report.imagesBase64.map(base64 => urltoFile(base64, 'evidencia.jpg', 'image/jpeg')));
+                        
+                        await createReport({
+                            title: report.title,
+                            description: report.description,
+                            roomId: report.roomId,
+                            imagesFiles: files
+                        });
+                    } catch (e) {
+                        console.error("Error syncing", e);
+                    }
+                }
+                localStorage.removeItem("offline_reports");
+                AlertHelper.showAlert("Sincronización completada", "success");
+            }
+        }
+      }
+    };
+    
+    syncOfflineReports();
     fetchRoom();
   }, [id]);
+
+  // Helper para convertir Base64 guardado a File real
+  const urltoFile = (url, filename, mimeType) => {
+    return (fetch(url)
+        .then(function(res){return res.arrayBuffer();})
+        .then(function(buf){return new File([buf], filename,{type:mimeType});})
+    );
+  }
+
+  // Helper para convertir File a Base64 (para guardar offline)
+  const fileToBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
 
   const fetchRoom = async () => {
     try {
       setLoading(true);
       const data = await getRoomById(id);
       setRoom(data);
-    } catch (err) {
-      setError("No se pudo cargar la habitación.");
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { setError("No se pudo cargar la habitación."); } finally { setLoading(false); }
   };
 
   const handleMarkClean = async () => {
     if (!window.confirm("¿Confirmas que la habitación está lista?")) return;
-    
     try {
         setLoading(true);
         if (!navigator.onLine) {
-            AlertHelper.showAlert("Estás sin conexión", "info");
-            navigate(-1);
-            return;
+            AlertHelper.showAlert("Sin conexión", "info"); navigate(-1); return;
         }
-
         await changeRoomStatus(room.id, "STATUS_CLEAN");
         setSuccessMsg("¡Habitación marcada como LIMPIA!");
         setTimeout(() => navigate("/"), 1500);
-        
-    } catch (err) {
-        setError("Error al actualizar estado.");
-        setLoading(false);
-    }
+    } catch (err) { setError("Error al actualizar estado."); setLoading(false); }
   };
 
-  // --- LÓGICA DE FOTOS (MEJORADA) ---
-  
-  const handleAddImage = (e) => {
+  // --- 2. LÓGICA DE FOTOS CON COMPRESIÓN ---
+  const handleAddImage = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (reportImages.length >= 3) { AlertHelper.showAlert("Máximo 3 fotos", "warning"); return; }
 
-    // MEJORA: Límite de 3 fotos
-    if (reportImages.length >= 3) {
-        AlertHelper.showAlert("Máximo 3 fotos permitidas", "warning");
-        return;
+    try {
+        // Opciones de compresión: max 1MB, max 1920px ancho
+        const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true };
+        const compressedFile = await imageCompression(file, options);
+
+        setReportImages([...reportImages, compressedFile]); // Guardamos el comprimido
+
+        const reader = new FileReader();
+        reader.onloadend = () => setImagePreviews(prev => [...prev, reader.result]);
+        reader.readAsDataURL(compressedFile);
+        e.target.value = null; 
+    } catch (error) {
+        console.log("Error comprimiendo", error);
+        AlertHelper.showAlert("Error procesando imagen", "error");
     }
-
-    // Agregar al array existente
-    setReportImages([...reportImages, file]);
-
-    // Crear preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-        setImagePreviews(prev => [...prev, reader.result]);
-    };
-    reader.readAsDataURL(file);
-
-    // Resetear input para permitir subir la misma foto si se borró
-    e.target.value = null; 
   };
 
   const handleRemoveImage = (indexToRemove) => {
-    // MEJORA: Filtrar arrays para borrar la foto específica
     setReportImages(prev => prev.filter((_, index) => index !== indexToRemove));
     setImagePreviews(prev => prev.filter((_, index) => index !== indexToRemove));
   };
 
+  // --- 3. ENVÍO INTELIGENTE ---
   const handleSubmitReport = async (e) => {
     e.preventDefault();
     setSendingReport(true);
@@ -104,15 +134,23 @@ const RoomDetail = () => {
             title: reportForm.title || "Incidencia General",
             description: reportForm.description,
             roomId: room.id,
-            imagesFiles: reportImages // Enviamos el array completo
+            imagesFiles: reportImages 
         };
 
         if (!navigator.onLine) {
+            // AQUI ESTABA EL ERROR: Convertimos fotos a texto Base64 antes de guardar
+            const imagesBase64 = await Promise.all(reportImages.map(file => fileToBase64(file)));
+            
             const pendingReports = JSON.parse(localStorage.getItem("offline_reports") || "[]");
-            pendingReports.push({ ...reportModel, imagesFiles: null, offline: true });
+            pendingReports.push({ 
+                ...reportModel, 
+                imagesFiles: null, // No guardamos el File
+                imagesBase64: imagesBase64, // Guardamos el texto
+                offline: true 
+            });
             localStorage.setItem("offline_reports", JSON.stringify(pendingReports));
             
-            AlertHelper.showAlert("Sin conexión. Guardado localmente.", "info");
+            AlertHelper.showAlert("Sin conexión. Guardado para envío automático.", "info");
             setIsReportOpen(false);
             navigate("/");
             return;
@@ -120,12 +158,8 @@ const RoomDetail = () => {
 
         await createReport(reportModel);
         AlertHelper.showAlert("Reporte enviado con éxito", "success");
-
-        // Limpieza total
         setIsReportOpen(false);
-        setReportImages([]);
-        setImagePreviews([]);
-        setReportForm({ title: "", description: "" });
+        setReportImages([]); setImagePreviews([]); setReportForm({ title: "", description: "" });
         fetchRoom(); 
     } catch (err) {
         console.error(err);
@@ -151,7 +185,7 @@ const RoomDetail = () => {
       {/* Header */}
       <div className="px-4 py-4 flex items-center gap-4 border-b border-gray-100 sticky top-0 bg-white z-10">
         <button onClick={() => navigate(-1)} className="p-2 rounded-full bg-gray-50 text-gray-600 hover:bg-gray-100">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
         </button>
         <h1 className="text-lg font-bold text-gray-800">Detalle de Tarea</h1>
       </div>
@@ -172,7 +206,7 @@ const RoomDetail = () => {
         <div className="grid grid-cols-1 gap-4 mt-auto">
             {room?.status !== 'STATUS_CLEAN' && (
                 <button onClick={handleMarkClean} className="w-full py-5 bg-green-500 hover:bg-green-600 text-white rounded-2xl shadow-lg flex flex-col items-center justify-center gap-1">
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
                     <span className="text-lg font-bold">Marcar como LIMPIA</span>
                 </button>
             )}
@@ -193,50 +227,27 @@ const RoomDetail = () => {
             <form onSubmit={handleSubmitReport} className="flex-1 p-6 flex flex-col gap-6 overflow-y-auto">
                 <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">Título Corto</label>
-                    <input type="text" className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-blue-500" placeholder="Ej: Lámpara rota" value={reportForm.title} onChange={e => setReportForm({...reportForm, title: e.target.value})} required />
+                    <input type="text" className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50" placeholder="Ej: Lámpara rota" value={reportForm.title} onChange={e => setReportForm({...reportForm, title: e.target.value})} required />
                 </div>
-
                 <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">Descripción Detallada</label>
-                    <textarea rows="4" className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-blue-500" placeholder="Describe el daño..." value={reportForm.description} onChange={e => setReportForm({...reportForm, description: e.target.value})} required></textarea>
+                    <textarea rows="4" className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50" placeholder="Describe el daño..." value={reportForm.description} onChange={e => setReportForm({...reportForm, description: e.target.value})} required></textarea>
                 </div>
 
-                {/* --- SECCION DE FOTOS MEJORADA --- */}
                 <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">
-                        Evidencias ({reportImages.length}/3)
-                    </label>
-                    
-                    {/* MEJORA: Flex wrap para que se acomoden al lado */}
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Evidencias ({reportImages.length}/3)</label>
                     <div className="flex flex-wrap gap-4">
-                        
-                        {/* MEJORA: Ocultar botón si ya hay 3 fotos */}
                         {reportImages.length < 3 && (
-                            <label className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 active:bg-gray-200 transition">
-                                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            <label className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100">
+                                <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                                 <span className="text-xs text-gray-500 mt-1 font-medium">Cámara</span>
-                                <input 
-                                    type="file" 
-                                    className="hidden" 
-                                    accept="image/*"
-                                    capture="environment" 
-                                    onChange={handleAddImage}
-                                />
+                                <input type="file" className="hidden" accept="image/*" capture="environment" onChange={handleAddImage} />
                             </label>
                         )}
-
-                        {/* MEJORA: Lista de previews con botón borrar */}
                         {imagePreviews.map((src, index) => (
-                            <div key={index} className="relative w-24 h-24 rounded-xl overflow-hidden border border-gray-200 shadow-sm animate-fade-in">
-                                <img src={src} alt={`Evidencia ${index + 1}`} className="w-full h-full object-cover" />
-                                {/* Botón X roja */}
-                                <button 
-                                    type="button"
-                                    onClick={() => handleRemoveImage(index)}
-                                    className="absolute top-0 right-0 bg-red-600 text-white w-6 h-6 flex items-center justify-center rounded-bl-lg shadow-md active:scale-90 transition z-10"
-                                >
-                                    ✕
-                                </button>
+                            <div key={index} className="relative w-24 h-24 rounded-xl overflow-hidden border border-gray-200">
+                                <img src={src} alt="Evidencia" className="w-full h-full object-cover" />
+                                <button type="button" onClick={() => handleRemoveImage(index)} className="absolute top-0 right-0 bg-red-600 text-white w-6 h-6 flex items-center justify-center rounded-bl-lg">✕</button>
                             </div>
                         ))}
                     </div>
