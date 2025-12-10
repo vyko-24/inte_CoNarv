@@ -87,9 +87,6 @@ const RoomDetail = () => {
     if (!window.confirm("¿Confirmas que la habitación está lista?")) return;
     try {
         setLoading(true);
-        if (!navigator.onLine) {
-            AlertHelper.showAlert("Sin conexión", "info"); navigate(-1); return;
-        }
         await changeRoomStatus(room.id, "STATUS_CLEAN");
         setSuccessMsg("¡Habitación marcada como LIMPIA!");
         setTimeout(() => navigate("/"), 1500);
