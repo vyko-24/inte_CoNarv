@@ -1,0 +1,59 @@
+services:
+  database:
+    image: mysql:8
+    container_name: db-camilahoteles
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: camilahoteles
+    ports:
+      - "3307:3306"
+    networks:
+      - camilahoteles-net
+    volumes:
+      - camilahoteles-data:/var/lib/mysql
+
+  frontend:
+    image: client:camilahoteles-v1
+    container_name: fe-camilahoteles
+    build:
+      context: ./client
+    ports:
+      - "80:80"
+    networks:
+      - camilahoteles-net
+
+  backend:
+    image: services:camilahoteles-v1
+    container_name: be-camilahoteles
+    build:
+      context: ./server
+    environment:
+      SERVER_PORT: 8080
+      DB_URL: jdbc:mysql://database:3306/camilahoteles
+      DB_USER: root
+      DB_PASSWORD: root
+      JWT_SECRET: R01VLVBSMFkzQzctU1Q0TVAtMGM1MmZiZDgtMGYxYS00MzliLTkyYWYtMjc4NDYzNzAwNzI4
+      SSL_ENABLED: true
+      SSL_KEYSTORE_PASSWORD: CamilaPass
+      SSL_KEY_PASSWORD: /etc/letsencrypt/live/camilahoteles.duckdns.org/keystore.p12
+
+    ports:
+      - "8081:8080"
+    networks:
+      - camilahoteles-net
+    volumes:
+      - certbot-certs:/etc/letsencrypt
+
+networks:
+  camilahoteles-net:
+    external: true
+
+volumes:
+  camilahoteles-data:
+    external: true
+  certbot-certs:
+    external: true
+
+
+# docker network create --driver bridge camilahoteles-net
+# docker volume create camilahoteles-data
