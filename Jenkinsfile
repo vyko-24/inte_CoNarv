@@ -33,11 +33,14 @@ pipeline {
             }
         }
 
-        stage('Build JAR') {
+stage('Build JAR') {
     steps {
         sh '''
-            cd server
-            mvn clean package -DskipTests
+            docker run --rm \
+                -v $PWD/server:/app \
+                -w /app \
+                maven:3.9.9-eclipse-temurin-21 \
+                mvn clean package -DskipTests
         '''
     }
 }
