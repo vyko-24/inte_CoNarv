@@ -23,9 +23,13 @@ services:
         API_BASE: /api
         API_PROTOCOL: https
     ports:
-      - "80:80"
+      - "80:443"
     networks:
       - camilahoteles-net
+    volumes:
+      - certbot-certs:/etc/letsencrypt:ro
+    depends_on:
+      - database
 
   backend:
     image: services:camilahoteles-v1
