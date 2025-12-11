@@ -18,7 +18,7 @@ services:
     build:
       context: ./client
       args:
-        API_HOST: localhost
+        API_HOST: camilahoteles.duckdns.org
         API_PORT: 8081
         API_BASE: /api
         API_PROTOCOL: https
