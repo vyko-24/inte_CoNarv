@@ -17,27 +17,28 @@ public class FirebaseConfig {
 
     @PostConstruct
     public void initialize() {
+
         try {
-            // --- 1) Recuperamos la variable de entorno con el JSON en BASE64 ---
+            // 1) Obtenemos el JSON en BASE64 desde el entorno
             String firebaseBase64 = System.getenv("FIREBASE_JSON_BASE64");
 
-            if (firebaseBase64 == null || firebaseBase64.isEmpty()) {
-                throw new RuntimeException("La variable de entorno FIREBASE_JSON_BASE64 no está configurada.");
+            if (firebaseBase64 == null || firebaseBase64.isBlank()) {
+                throw new RuntimeException("FIREBASE_JSON_BASE64 no está configurada");
             }
 
-            // --- 2) Decodificamos el BASE64 a bytes ---
+            // 2) Decodificamos el BASE64
             byte[] decodedBytes = Base64.getDecoder().decode(firebaseBase64);
 
-            // --- 3) Creamos un InputStream en memoria para pasarlo a Firebase ---
+            // 3) Creamos un InputStream para Firebase
             InputStream serviceAccount = new ByteArrayInputStream(decodedBytes);
 
-            // --- 4) Construimos las opciones de Firebase ---
+            // 4) Configuramos Firebase
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                    .setStorageBucket("reactmobile5a.appspot.com") // tu bucket
+                    .setStorageBucket("reactmobile5a.appspot.com")
                     .build();
 
-            // --- 5) Inicializamos Firebase una sola vez ---
+            // 5) Inicializamos Firebase solo una vez
             if (FirebaseApp.getApps().isEmpty()) {
                 FirebaseApp.initializeApp(options);
                 System.out.println("Firebase inicializado correctamente desde BASE64.");

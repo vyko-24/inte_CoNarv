@@ -3,14 +3,16 @@ pipeline {
 
     environment {
         PATH = "/usr/local/bin:${env.PATH}"
+
+        // Aquí Jenkins carga automáticamente el secreto en texto plano
+        FIREBASE_JSON_BASE64 = credentials('firebase-json-base64')
     }
 
     stages {
+
         stage('Stopping services') {
             steps {
-                sh '''
-                    docker compose -p camilahoteles down || true
-                '''
+                sh 'docker compose -p camilahoteles down || true'
             }
         }
 
@@ -30,41 +32,22 @@ pipeline {
                 checkout scm
             }
         }
+
         stage('Build Backend Docker Image') {
-    steps {
-        sh '''
-        docker build \
-            --build-arg FIREBASE_JSON_BASE64=${FIREBASE_JSON_BASE64} \
-            -t services:camilahoteles-v1 \
-            ./server
-        '''
-    }
-}
-
-        stage('Building new images') {
             steps {
                 sh '''
-                    docker compose build --no-cache
+                docker build \
+                    --build-arg FIREBASE_JSON_BASE64="${FIREBASE_JSON_BASE64}" \
+                    -t services:camilahoteles-v1 \
+                    ./server
                 '''
             }
         }
 
-        stage('Deploying containers') {
+        stage('Deploy containers') {
             steps {
-                sh '''
-                    docker compose up -d
-                '''
+                sh 'docker compose up -d'
             }
-        }
-    }
-
-    post {
-        success {
-            echo 'Pipeline executed successfully.'
-        }
-
-        failure {
-            echo 'An error occurred during pipeline execution, check the logs of the stage for mor information.'
         }
     }
 }
