@@ -62,7 +62,7 @@ export default function Login() {
           
           {/* Header del Login */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-blue-600 mb-2">RomMila</h1>
+            <h1 className="text-3xl font-bold text-blue-600 mb-2">Hola Papu :V</h1>
             <p className="text-gray-600">Servicio de limpieza</p>
           </div>
 
