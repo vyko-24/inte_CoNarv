@@ -23,28 +23,28 @@ services:
       - camilahoteles-net
 
   backend:
-  image: services:camilahoteles-v1
-  container_name: be-camilahoteles
+    image: services:camilahoteles-v1
+    container_name: be-camilahoteles
 
-  environment:
-    SERVER_PORT: 8080
-    DB_URL: jdbc:mysql://database:3306/camilahoteles
-    DB_USER: root
-    DB_PASSWORD: root
-    JWT_SECRET: R01VLVBSMFkzQzctU1Q0TVAtMGM1MmZiZDgtMGYxYS00MzliLTkyYWYtMjc4NDYzNzAwNzI4
-    SSL_ENABLED: true
-    SSL_KEYSTORE_PASSWORD: CamilaPass
-    SSL_KEY_PASSWORD: /etc/letsencrypt/live/camilahoteles.duckdns.org/keystore.p12
+    environment:
+      SERVER_PORT: 8080
+      DB_URL: jdbc:mysql://database:3306/camilahoteles
+      DB_USER: root
+      DB_PASSWORD: root
+      JWT_SECRET: R01VLVBSMFkzQzctU1Q0TVAtMGM1MmZiZDgtMGYxYS00MzliLTkyYWYtMjc4NDYzNzAwNzI4
+      SSL_ENABLED: true
+      SSL_KEYSTORE_PASSWORD: CamilaPass
+      SSL_KEY_PASSWORD: /etc/letsencrypt/live/camilahoteles.duckdns.org/keystore.p12
 
-    FIREBASE_JSON_BASE64: ${FIREBASE_JSON_BASE64}
+      FIREBASE_JSON_BASE64: ${FIREBASE_JSON_BASE64}
 
-  ports:
-    - "8081:8080"
-  networks:
-    - camilahoteles-net
+    ports:
+      - "8081:8080"
+    networks:
+      - camilahoteles-net
 
-  volumes:
-    - certbot-certs:/etc/letsencrypt
+    volumes:
+      - certbot-certs:/etc/letsencrypt
 
 
 networks:
