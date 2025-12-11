@@ -9,9 +9,15 @@ RUN npm install
 
 COPY . .
 
-ARG API_URL
+ARG API_HOST
+ARG API_PORT
+ARG API_BASE
+ARG API_PROTOCOL
 
-ENV VITE_API_URL=$API_URL
+ENV VITE_API_HOST=$API_HOST
+ENV VITE_API_PORT=$API_PORT
+ENV VITE_API_BASE=$API_BASE
+ENV VITE_API_PROTOCOL=$API_PROTOCOL
 
 RUN npm run build
 
@@ -20,6 +26,9 @@ RUN npm run build
 FROM nginx:alpine
 
 COPY --from=build /app/dist /usr/share/nginx/html
+
+# Reemplazar el archivo de configuración de nginx
+COPY ./nginx.conf /etc/nginx/nginx.conf
 
 EXPOSE 80
 

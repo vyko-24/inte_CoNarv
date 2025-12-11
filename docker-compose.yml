@@ -17,6 +17,11 @@ services:
     container_name: fe-camilahoteles
     build:
       context: ./client
+      args:
+        API_HOST: localhost
+        API_PORT: 8081
+        API_BASE: /api
+        API_PROTOCOL: https
     ports:
       - "80:80"
     networks:
