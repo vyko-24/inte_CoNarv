@@ -33,6 +33,16 @@ pipeline {
             }
         }
 
+        stage('Build JAR') {
+    steps {
+        sh '''
+            cd server
+            mvn clean package -DskipTests
+        '''
+    }
+}
+
+
         stage('Build Backend Docker Image') {
             steps {
                 sh '''
