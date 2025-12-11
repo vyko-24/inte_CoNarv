@@ -39,6 +39,7 @@ const RoomsAssignment = () => {
                 getAllRooms(),
                 getAllUsers()
             ]);
+            console.log("Rooms data:", roomsData);
             setRooms(roomsData);
             const maidList = (usersData.result || usersData).filter(
                 user => user?.role === "ROLE_MAID"
@@ -117,6 +118,7 @@ const RoomsAssignment = () => {
     // --- ACCIONES EN TARJETA ---
     const handleAssignMaid = async (roomModel, newMaidId) => {
         try {
+            console.log("Assigning maid:", newMaidId, "to room:", roomModel);
             setProcessingId(roomModel.id);
             const selectedMaid = maids.find(m => m.id === Number(newMaidId));
             const updatedRoomModel = { ...roomModel, maid: selectedMaid || null };
