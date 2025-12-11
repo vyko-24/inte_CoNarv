@@ -30,6 +30,16 @@ pipeline {
                 checkout scm
             }
         }
+        stage('Build Backend Docker Image') {
+    steps {
+        sh '''
+        docker build \
+            --build-arg FIREBASE_JSON_BASE64=${FIREBASE_JSON_BASE64} \
+            -t services:camilahoteles-v1 \
+            ./server
+        '''
+    }
+}
 
         stage('Building new images') {
             steps {

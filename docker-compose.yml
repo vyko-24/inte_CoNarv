@@ -36,6 +36,7 @@ services:
       SSL_ENABLED: true
       SSL_KEYSTORE_PASSWORD: CamilaPass
       SSL_KEY_PASSWORD: /etc/letsencrypt/live/camilahoteles.duckdns.org/keystore.p12
+      FIREBASE_JSON_BASE64: ${FIREBASE_JSON_BASE64}
 
     ports:
       - "8081:8080"
